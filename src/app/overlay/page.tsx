@@ -35,7 +35,7 @@ export default function Overlay() {
   <div className="effect-glow glow-one"/>
   <div className="effect-glow glow-two"/>
   <div className="effect-particles" aria-hidden="true">
-   {particles.map(i=><span key={i} style={{'--particle-index':i} as React.CSSProperties}>{i%4===0?'✦':i%4===1?'✧':i%4===2?'·':'✺'}</span>)}
+   {particles.map(i=><span key={i} style={{left:`${(i*37+3)%100}%`,animationDuration:`${2.4+(i%5)*.45}s`,animationDelay:`${(i%8)*.12}s`}}>{i%4===0?'✦':i%4===1?'✧':i%4===2?'·':'✺'}</span>)}
   </div>
   <div className={`paper ${visible?'active':''}`}>
    <div className="paper-top">✧  UMA HOMENAGEM ESPECIAL  ✧</div>
