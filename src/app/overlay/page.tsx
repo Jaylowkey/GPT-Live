@@ -21,7 +21,7 @@ export default function Overlay() {
   let cursor=0;
   let alive=true;
   let hideTimer: ReturnType<typeof setTimeout> | undefined;
-  const likeTimers: ReturnType<typeof setTimeout>[] = [];
+  const likeTimers: number[] = [];
   const poll=async()=>{
    try {
     const token=new URLSearchParams(location.search).get('token')||'';
