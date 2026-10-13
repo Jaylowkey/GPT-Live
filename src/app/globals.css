@@ -29,3 +29,14 @@
 @keyframes starBeat{0%,100%{transform:scale(1);opacity:.8}50%{transform:scale(1.2);opacity:1}}
 @keyframes giftBounce{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-5px) rotate(6deg)}}
 @media(max-width:720px){.overlay-shell{padding:14px}.overlay-content{gap:12px}.paper{width:100%;min-height:230px;padding:26px 16px 22px}.ink-name{font-size:clamp(34px,10vw,62px);margin-top:30px}.gift-cta{padding:13px 12px;gap:9px;border-radius:13px}.cta-star,.cta-gift{font-size:22px}.cta-copy strong{font-size:14px}.cta-copy span{font-size:10px}.gift-levels{gap:7px;font-size:9px}.overlay-watermark{font-size:7px;letter-spacing:1.4px}}
+
+
+/* Likes do TikTok: nomes flutuam de baixo para cima e desaparecem rapidamente */
+.floating-likes-layer{position:absolute;inset:0;z-index:8;overflow:hidden;pointer-events:none;contain:layout paint}
+.floating-like{position:absolute;bottom:-64px;display:flex;align-items:center;gap:8px;max-width:min(80vw,320px);padding:8px 14px 8px 9px;border:1px solid #ff8ab84d;border-radius:999px;background:linear-gradient(110deg,#211323e8,#15121ee8);box-shadow:0 0 20px #ff5d9d30,0 5px 18px #0003;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:likeNameFloat 3.2s cubic-bezier(.18,.65,.3,1) forwards}
+.floating-like strong{font-size:clamp(12px,1.8vw,16px);font-weight:700;text-shadow:0 1px 8px #ff5d9d55;overflow:hidden;text-overflow:ellipsis}
+.floating-like-heart{display:grid;place-items:center;width:25px;height:25px;flex:0 0 25px;border-radius:50%;background:linear-gradient(145deg,#ff78a8,#ee397a);color:white;font-size:15px;box-shadow:0 0 13px #ff5d9d85;animation:likeHeartBeat .7s ease-in-out infinite alternate}
+@keyframes likeNameFloat{0%{opacity:0;transform:translate3d(0,0,0) scale(.78)}12%{opacity:1;transform:translate3d(-8px,-8vh,0) scale(1)}65%{opacity:1;transform:translate3d(12px,-58vh,0) scale(1.02)}100%{opacity:0;transform:translate3d(-5px,-105vh,0) scale(.9)}}
+@keyframes likeHeartBeat{from{transform:scale(.9)}to{transform:scale(1.12)}}
+@media(prefers-reduced-motion:reduce){.floating-like,.floating-like-heart{animation:none!important}.floating-like{bottom:12%;opacity:1}}
+@media(max-width:720px){.floating-like{padding:6px 11px 6px 7px;gap:6px}.floating-like-heart{width:21px;height:21px;flex-basis:21px;font-size:13px}.floating-like strong{font-size:12px}}
