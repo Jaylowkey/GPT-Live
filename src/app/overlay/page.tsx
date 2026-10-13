@@ -20,7 +20,8 @@ export default function Overlay() {
   const ctaTimer=window.setInterval(()=>setCtaIndex(i=>(i+1)%callsToAction.length),6500);
   let cursor=0;
   let alive=true;
-  let hideTimer: ReturnType<typeof setTimeout> | undefined;
+  // In the browser, window.setTimeout returns a number (not NodeJS.Timeout).
+  let hideTimer: number | undefined;
   const likeTimers: number[] = [];
   const poll=async()=>{
    try {
@@ -48,14 +49,14 @@ export default function Overlay() {
       setEvent(e);
       setText(e.username);
       setVisible(true);
-      if(hideTimer)clearTimeout(hideTimer);
+      if(hideTimer!==undefined)window.clearTimeout(hideTimer);
       hideTimer=window.setTimeout(()=>{if(alive)setVisible(false)},Math.max(4500,(e.duration||6)*1000));
      }
     }
    } catch {}
   };
   const id=window.setInterval(poll,1000);
-  return()=>{alive=false;clearInterval(id);clearInterval(ctaTimer);if(hideTimer)clearTimeout(hideTimer);likeTimers.forEach(clearTimeout)};
+  return()=>{alive=false;window.clearInterval(id);window.clearInterval(ctaTimer);if(hideTimer!==undefined)window.clearTimeout(hideTimer);likeTimers.forEach((timer)=>window.clearTimeout(timer))};
  },[]);
  const bigGift=(event?.diamonds||0)>=100;
  return <main className={`overlay-shell ${visible?'overlay-live':''} ${bigGift&&visible?'big-gift':''}`}>
