@@ -87,6 +87,25 @@ export default function ObbyPage() {
       const top = new THREE.Mesh(new THREE.BoxGeometry(11.1, 0.55, 0.45), mat(color));
       top.position.set(0, 4.8, z); scene.add(top);
     }
+    // Bright race lanes, glowing boost pads and checkpoint arches improve track readability.
+    for (let lane = -4; lane <= 4; lane++) {
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.025, 120), mat(lane % 2 === 0 ? 0x8bdcff : 0xffd1e1));
+      stripe.position.set(lane * 1.35, 0.17, -53); scene.add(stripe);
+    }
+    for (let i = 0; i < 6; i++) {
+      const z = -10 - i * 18;
+      const pad = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.12, 2.2), new THREE.MeshStandardMaterial({ color: i % 2 ? 0x36a3ff : 0xff5cc8, emissive: i % 2 ? 0x0755aa : 0x8a1455, emissiveIntensity: 0.75, roughness: 0.35 }));
+      pad.position.set(i % 2 ? 2.2 : -2.2, 0.22, z); pad.userData.pulse = true; scene.add(pad);
+      for (let side = -1; side <= 1; side += 2) {
+        const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.42), new THREE.MeshStandardMaterial({ color: i % 2 ? 0x7dd3fc : 0xf9a8d4, emissive: i % 2 ? 0x0369a1 : 0x9d174d, emissiveIntensity: 0.5 }));
+        crystal.position.set((i % 2 ? 2.2 : -2.2) + side * 1.9, 0.8, z); scene.add(crystal);
+      }
+    }
+    for (const z of [-25, -58, -91]) {
+      const archMat = mat(0xf8fafc);
+      for (const x of [-5.6, 5.6]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.22, 3.4, 0.22), archMat); post.position.set(x, 1.6, z); scene.add(post); }
+      const arch = new THREE.Mesh(new THREE.BoxGeometry(11.4, 0.22, 0.25), mat(0xffd166)); arch.position.set(0, 3.3, z); scene.add(arch);
+    }
     // Floating islands, ramps, rotating bars and block obstacles
     for (let i = 0; i < 16; i++) {
       const z = -5 - i * 6.5;
@@ -122,21 +141,40 @@ export default function ObbyPage() {
       sprite.scale.set(4.2, 1.05, 1); sprite.position.y = 2.6;
       return sprite;
     };
+    const hashName = (value: string) => Array.from(value.toLowerCase()).reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
     const createPlayer = (name: string, team: 'blue' | 'red') => {
       const key = name.toLowerCase();
       if (players.has(key)) return players.get(key)!;
-      const lane = (players.size % 7) - 3;
-      const color = team === 'blue' ? BLUE : team === 'red' ? RED : (players.size % 2 ? BLUE : RED);
+      const seed = hashName(name);
+      const lane = (players.size % 9) - 4;
+      const teamColor = team === 'blue' ? BLUE : team === 'red' ? RED : (seed % 2 ? BLUE : RED);
+      const outfitColors = [0x7c5cff,0xff8a3d,0x22c7a9,0xf04f91,0xf2c94c,0x4d7cff,0x8bd450,0xff6b6b];
+      const skinColors = [0xffd0a6,0xc68655,0x8d5524,0xf1c27d,0xe0ac69,0xffdfbf];
+      const hairColors = [0x241c15,0x593d2b,0xb97935,0x2b3445,0xeee2c8,0x8c3c66];
+      const outfit = outfitColors[seed % outfitColors.length];
+      const skin = skinColors[(seed >>> 3) % skinColors.length];
+      const hairColor = hairColors[(seed >>> 6) % hairColors.length];
       const avatar = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.95, 0.48), mat(color)); body.position.y = 1.05; body.castShadow = true; avatar.add(body);
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.66, 0.66), mat(0xffd0a6)); head.position.y = 1.88; head.castShadow = true; avatar.add(head);
-      const hair = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.18, 0.7), mat(0x382b29)); hair.position.y = 2.24; avatar.add(hair);
+      // Individual blocky avatar: each username gets a stable face, hair, outfit and accessory.
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.9, 0.46), mat(outfit)); body.position.y = 1.05; body.castShadow = true; avatar.add(body);
+      const teamBadge = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.12, 0.49), mat(teamColor)); teamBadge.position.y = 1.43; avatar.add(teamBadge);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.64, 0.64), mat(skin)); head.position.y = 1.88; head.castShadow = true; avatar.add(head);
+      const hair = new THREE.Mesh(seed % 3 === 0 ? new THREE.SphereGeometry(0.39, 7, 5) : new THREE.BoxGeometry(0.7, 0.2 + (seed % 3) * 0.05, 0.7), mat(hairColor)); hair.position.y = 2.22; avatar.add(hair);
+      const face = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.08, 0.035), mat(0x2b2530)); face.position.set(0, 1.91, 0.337); avatar.add(face);
       for (const side of [-1, 1]) {
-        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.72, 0.32), mat(0x26334a)); leg.position.set(side * 0.24, 0.38, 0); avatar.add(leg);
-        const arm = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.72, 0.28), mat(0xffd0a6)); arm.position.set(side * 0.59, 1.12, 0); avatar.add(arm);
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.7, 0.3), mat(seed % 2 ? 0x26334a : 0x393044)); leg.position.set(side * 0.22, 0.37, 0); avatar.add(leg);
+        const arm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.68, 0.27), mat(skin)); arm.position.set(side * 0.55, 1.12, 0); avatar.add(arm);
       }
-      const label = addLabel(name, color); avatar.add(label); avatar.position.set(lane * 1.2, 0, 3 + (players.size % 4) * 1.2); scene.add(avatar);
-      const p: LivePlayer = { username: name, lane, progress: 0, points: 0, color, avatar, label, lastBoost: 0 };
+      // A username-derived accessory makes players easier to recognise in a busy LIVE.
+      if (seed % 3 === 0) {
+        const cap = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.12, 0.72), mat(outfitColors[(seed + 3) % outfitColors.length]));
+        cap.position.y = 2.39; avatar.add(cap);
+      } else if (seed % 3 === 1) {
+        const backpack = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.46, 0.18), mat(outfitColors[(seed + 5) % outfitColors.length]));
+        backpack.position.set(0, 1.12, -0.31); avatar.add(backpack);
+      }
+      const label = addLabel(name, teamColor); avatar.add(label); avatar.position.set(lane * 1.05, 0, 3 + (players.size % 4) * 1.2); scene.add(avatar);
+      const p: LivePlayer = { username: name, lane, progress: 0, points: 0, color: teamColor, avatar, label, lastBoost: 0 };
       players.set(key, p); setCount(players.size); return p;
     };
     const updateRank = () => {
@@ -186,7 +224,7 @@ export default function ObbyPage() {
     const animate = () => {
       if (!alive) return;
       const dt = Math.min(clock.getDelta(), 0.05);
-      scene.traverse(obj => { if (obj.userData.spin) obj.rotation.y += obj.userData.spin * dt; });
+      scene.traverse(obj => { if (obj.userData.spin) obj.rotation.y += obj.userData.spin * dt; if (obj.userData.pulse) obj.scale.y = 1 + Math.sin(clock.elapsedTime * 4) * 0.15; });
       for (const p of players.values()) {
         if (scene.userData.roundOn) p.progress += dt * 0.45;
         p.avatar.position.z = 3 - p.progress * 4;
@@ -285,7 +323,7 @@ export default function ObbyPage() {
         <div style={{marginTop:12,padding:14,borderRadius:12,background:'#101b2b',border:'1px solid #22324a',fontSize:13}}><span style={{color:'#9fb6d7'}}>🎙️ GPT Live anuncia: </span>{soundNotice}</div>
       </section>
       <aside style={{display:'flex',flexDirection:'column',gap:12}}>
-        <div style={cardStyle}><h2 style={headingStyle}>🏆 TOP 10</h2>{ranking.length?ranking.map((p,i)=><div key={p.name} style={{display:'flex',justifyContent:'space-between',gap:8,padding:'10px 0',borderBottom:'1px solid #223047',fontSize:12}}><span>{['🥇','🥈','🥉'][i]||'🏃'} {p.name}</span><b style={{color:p.lane%2?'#ff8197':'#69baff'}}>{p.points} pts</b></div>):<p style={{fontSize:12,color:'#91a0b7'}}>À espera dos espectadores. Comenta JOIN na LIVE.</p>}</div>
+        <div style={{...cardStyle,background:'linear-gradient(155deg,#172b46,#101827 68%)',borderColor:'#3b5274',boxShadow:'0 12px 30px #0004'}}><h2 style={{...headingStyle,fontSize:16,letterSpacing:1}}>🏆 HALL DA FAMA <span style={{float:'right',fontSize:10,color:'#8da9ce'}}>TOP 10</span></h2>{ranking.length?ranking.map((p,i)=><div key={p.name} style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,padding:'10px 8px',marginBottom:5,borderRadius:9,background:i===0?'linear-gradient(90deg,#705b2a55,#d4af3730)':i===1?'#94a3b822':i===2?'#b8733322':'#07111f88',border:'1px solid '+(i===0?'#d4af3766':'#ffffff0b'),fontSize:12}}><span style={{display:'flex',alignItems:'center',gap:7,minWidth:0}}><b style={{fontSize:15}}>{['🥇','🥈','🥉'][i]||String(i+1).padStart(2,'0')}</b><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</span></span><b style={{color:p.lane%2?'#ff8197':'#69baff',whiteSpace:'nowrap'}}>{p.points} <small>PTS</small></b></div>):<p style={{fontSize:12,color:'#91a0b7'}}>À espera dos espectadores. Comenta JOIN na LIVE.</p>}</div>
         <div style={cardStyle}><h2 style={headingStyle}>💬 Como jogar</h2><p style={helpStyle}><b>JOIN</b> — entra na pista</p><p style={helpStyle}><b>AZUL / VERMELHO</b> — escolhe a equipa</p><p style={helpStyle}><b>Likes</b> — impulsionam o corredor</p><p style={helpStyle}><b>Presentes</b> — turbo extra</p><p style={{fontSize:10,color:'#7f91aa',lineHeight:1.5}}>Os espectadores precisam entrar com JOIN antes de os likes/presentes afetarem o seu corredor.</p></div>
         <div style={cardStyle}><h2 style={headingStyle}>⚡ Eventos recentes</h2>{eventLog.length?eventLog.map((e,i)=><p key={e+i} style={{fontSize:11,color:'#cbd5e1',borderBottom:'1px solid #223047',paddingBottom:8}}>{e}</p>):<p style={{fontSize:12,color:'#91a0b7'}}>Ainda sem eventos.</p>}</div>
       </aside>
