@@ -194,6 +194,22 @@ export default function ObbyPage() {
         p.avatar.children.forEach((child, idx) => { if (idx === 0) child.rotation.x = Math.sin(clock.elapsedTime * 9 + p.lane) * 0.08; });
         if (p.avatar.position.z < -108) p.avatar.position.z = 3;
       }
+      // Dynamic chase camera: follow the leading runner smoothly while looking ahead on the track.
+      const leader = [...players.values()].sort((a, b) => b.progress - a.progress)[0];
+      const desiredCameraPosition = leader
+        ? new THREE.Vector3(leader.avatar.position.x * 0.35, 8.5, leader.avatar.position.z + 15)
+        : new THREE.Vector3(0, 13, 25);
+      const lookTarget = leader
+        ? new THREE.Vector3(leader.avatar.position.x * 0.45, 1.3, leader.avatar.position.z - 8)
+        : new THREE.Vector3(0, 0, -12);
+      // Frame-rate independent smoothing avoids sudden camera jumps.
+      const cameraSmooth = 1 - Math.exp(-3.2 * dt);
+      camera.position.lerp(desiredCameraPosition, cameraSmooth);
+      const currentLookTarget = camera.userData.lookTarget as THREE.Vector3 | undefined;
+      if (!currentLookTarget) camera.userData.lookTarget = lookTarget.clone();
+      const smoothLookTarget = camera.userData.lookTarget as THREE.Vector3;
+      smoothLookTarget.lerp(lookTarget, cameraSmooth);
+      camera.lookAt(smoothLookTarget);
       renderer.render(scene, camera);
       gameRef.current && (gameRef.current.frame = requestAnimationFrame(animate));
     };
