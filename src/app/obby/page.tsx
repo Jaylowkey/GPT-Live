@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
-type LivePlayer = { username: string; lane: number; progress: number; points: number; color: number; avatar: THREE.Group; label: THREE.Sprite; lastBoost: number };
+type LivePlayer = { username: string; lane: number; progress: number; points: number; color: number; avatar: THREE.Group; label: THREE.Sprite; lastBoost: number; lastHit: number };
 type TikFinityMessage = { event?: string; data?: Record<string, unknown> };
 
 const BLUE = 0x36a3ff;
@@ -111,10 +111,10 @@ export default function ObbyPage() {
       const z = -5 - i * 6.5;
       const x = [-3.7, 0, 3.6, -1.8, 2.4][i % 5];
       const box = new THREE.Mesh(new THREE.BoxGeometry(1.5 + (i % 3) * 0.35, 0.45, 1.1), mat([0xffb54a,0xf05a79,0x8c70ff,0x42c6b5][i % 4]));
-      box.position.set(x, 0.5 + (i % 4) * 0.24, z); box.rotation.y = (i % 3) * 0.23; box.castShadow = true; scene.add(box);
+      box.position.set(x, 0.5 + (i % 4) * 0.24, z); box.rotation.y = (i % 3) * 0.23; box.castShadow = true; box.userData.raceObstacle = true; scene.add(box);
       if (i % 2 === 0) {
         const bar = new THREE.Mesh(new THREE.BoxGeometry(5.3, 0.28, 0.28), mat(0xf8f3ff));
-        bar.position.set(-x * 0.3, 1.0 + (i % 3) * 0.22, z - 2.4); bar.userData.spin = (i % 2 ? 1 : -1) * 0.45; bar.castShadow = true; scene.add(bar);
+        bar.position.set(-x * 0.3, 1.0 + (i % 3) * 0.22, z - 2.4); bar.userData.spin = (i % 2 ? 1 : -1) * 0.45; bar.userData.raceObstacle = true; bar.castShadow = true; scene.add(bar);
       }
     }
     // Stylized low-poly trees in the landscape
@@ -217,7 +217,7 @@ export default function ObbyPage() {
         shoulder.position.y = 1.49; avatar.add(shoulder);
       }
       const label = addLabel(name, teamColor); avatar.add(label); avatar.position.set(lane * 1.05, 0, 3 + (players.size % 4) * 1.2); avatar.rotation.y = Math.PI; scene.add(avatar);
-      const p: LivePlayer = { username: name, lane, progress: 0, points: 0, color: teamColor, avatar, label, lastBoost: 0 };
+      const p: LivePlayer = { username: name, lane, progress: 0, points: 0, color: teamColor, avatar, label, lastBoost: 0, lastHit: 0 };
       players.set(key, p); setCount(players.size); return p;
     };
     const updateRank = () => {
@@ -273,6 +273,23 @@ export default function ObbyPage() {
       for (const p of players.values()) {
         if (scene.userData.roundOn) p.progress += dt * 0.45;
         p.avatar.position.z = 3 - p.progress * 4;
+        // Lightweight collision response: hitboxes are evaluated only while a round is running.
+        // This keeps the port self-contained in Next.js instead of importing the source game's Cloudflare multiplayer stack.
+        if (scene.userData.roundOn && performance.now() - p.lastHit > 1100) {
+          let hit = false;
+          scene.traverse((obj) => {
+            if (hit || !obj.userData.raceObstacle) return;
+            const halfX = obj.userData.spin ? 2.7 : 1.05;
+            if (Math.abs(p.avatar.position.z - obj.position.z) < 1.05 && Math.abs(p.avatar.position.x - obj.position.x) < halfX) hit = true;
+          });
+          if (hit) {
+            p.lastHit = performance.now();
+            p.progress = Math.max(0, p.progress - 1.1);
+            p.points = Math.max(0, p.points - 5);
+            p.avatar.position.y = 0.28;
+            setEventLog(old => [p.username + ' bateu num obstáculo!', ...old].slice(0, 5));
+          }
+        }
         const stride = scene.userData.roundOn ? 1 : 0.28;
         p.avatar.position.y = Math.max(0, Math.abs(Math.sin(clock.elapsedTime * 10 + p.lane)) * (scene.userData.roundOn ? 0.13 : 0.035));
         p.avatar.children.forEach((child) => {
