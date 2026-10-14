@@ -188,7 +188,7 @@ export default function ObbyPage() {
       const dt = Math.min(clock.getDelta(), 0.05);
       scene.traverse(obj => { if (obj.userData.spin) obj.rotation.y += obj.userData.spin * dt; });
       for (const p of players.values()) {
-        if (roundOn) p.progress += dt * 0.45;
+        if (scene.userData.roundOn) p.progress += dt * 0.45;
         p.avatar.position.z = 3 - p.progress * 4;
         p.avatar.position.y = Math.max(0, Math.sin(clock.elapsedTime * 8 + p.lane) * 0.08);
         p.avatar.children.forEach((child, idx) => { if (idx === 0) child.rotation.x = Math.sin(clock.elapsedTime * 9 + p.lane) * 0.08; });
