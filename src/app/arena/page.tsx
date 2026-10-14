@@ -137,6 +137,8 @@ export default function ArenaPage() {
       return;
     }
     if (!teamRef.current[name.toLowerCase()]) {
+      const current = { ...teamRef.current, [name.toLowerCase()]: { username: name, team, points: 0 } };
+      teamRef.current = current;
       setPlayers(prev => {
         const next = { ...prev, [name.toLowerCase()]: { username: name, team, points: 0 } };
         teamRef.current = next;
