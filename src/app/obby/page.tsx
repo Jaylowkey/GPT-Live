@@ -216,7 +216,7 @@ export default function ObbyPage() {
         const shoulder = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.16, 0.5), mat(teamColor));
         shoulder.position.y = 1.49; avatar.add(shoulder);
       }
-      const label = addLabel(name, teamColor); avatar.add(label); avatar.position.set(lane * 1.05, 0, 3 + (players.size % 4) * 1.2); scene.add(avatar);
+      const label = addLabel(name, teamColor); avatar.add(label); avatar.position.set(lane * 1.05, 0, 3 + (players.size % 4) * 1.2); avatar.rotation.y = Math.PI; scene.add(avatar);
       const p: LivePlayer = { username: name, lane, progress: 0, points: 0, color: teamColor, avatar, label, lastBoost: 0 };
       players.set(key, p); setCount(players.size); return p;
     };
@@ -387,7 +387,7 @@ export default function ObbyPage() {
     ctx.fillStyle='#111827ee';ctx.beginPath();ctx.roundRect(8,8,496,112,24);ctx.fill();ctx.strokeStyle='#'+color.toString(16).padStart(6,'0');ctx.lineWidth=7;ctx.stroke();
     ctx.font='bold 40px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff';ctx.fillText(name,256,64,450);
     const label=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(labelCanvas),transparent:true,depthTest:false}));label.scale.set(4.2,1.05,1);label.position.y=2.8;avatar.add(label);
-    avatar.position.set(lane*1.2,0,3);g.scene.add(avatar);
+    avatar.position.set(lane*1.2,0,3);avatar.rotation.y=Math.PI;g.scene.add(avatar);
     g.players.set(name.toLowerCase(),{username:name,lane,progress:Math.random()*2,points:0,color,avatar,label,lastBoost:performance.now()});
     setCount(g.players.size); setRanking([...g.players.values()].sort((a,b)=>b.progress-a.progress).slice(0,10).map(p=>({name:p.username,points:Math.round(p.progress*10)+p.points,lane:p.lane})));
     announce(name+' entrou na pista! Vamos correr!');
