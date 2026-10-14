@@ -155,23 +155,66 @@ export default function ObbyPage() {
       const skin = skinColors[(seed >>> 3) % skinColors.length];
       const hairColor = hairColors[(seed >>> 6) % hairColors.length];
       const avatar = new THREE.Group();
-      // Individual blocky avatar: each username gets a stable face, hair, outfit and accessory.
-      const body = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.9, 0.46), mat(outfit)); body.position.y = 1.05; body.castShadow = true; avatar.add(body);
-      const teamBadge = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.12, 0.49), mat(teamColor)); teamBadge.position.y = 1.43; avatar.add(teamBadge);
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.64, 0.64), mat(skin)); head.position.y = 1.88; head.castShadow = true; avatar.add(head);
-      const hair = new THREE.Mesh(seed % 3 === 0 ? new THREE.SphereGeometry(0.39, 7, 5) : new THREE.BoxGeometry(0.7, 0.2 + (seed % 3) * 0.05, 0.7), mat(hairColor)); hair.position.y = 2.22; avatar.add(hair);
-      const face = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.08, 0.035), mat(0x2b2530)); face.position.set(0, 1.91, 0.337); avatar.add(face);
-      for (const side of [-1, 1]) {
-        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.7, 0.3), mat(seed % 2 ? 0x26334a : 0x393044)); leg.position.set(side * 0.22, 0.37, 0); avatar.add(leg);
-        const arm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.68, 0.27), mat(skin)); arm.position.set(side * 0.55, 1.12, 0); avatar.add(arm);
+      // More expressive username-seeded block avatar: layered clothes, face details,
+      // shoes, cuffs and distinct hair/accessory silhouettes. Team colour stays visible.
+      const dark = mat(0x20283b);
+      const pantsColor = [0x26334a, 0x393044, 0x263b3b, 0x31364d][(seed >>> 9) % 4];
+      const shoeColor = [0xf8fafc, 0x171923, 0xffd166, 0x78dce8][(seed >>> 12) % 4];
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.82, 0.44), mat(outfit));
+      torso.position.y = 1.12; torso.castShadow = true; avatar.add(torso);
+      const shirtPanel = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.58, 0.035), mat(outfitColors[(seed + 2) % outfitColors.length]));
+      shirtPanel.position.set(0, 1.13, 0.235); avatar.add(shirtPanel);
+      const teamBadge = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.14, 0.49), new THREE.MeshStandardMaterial({ color: teamColor, emissive: teamColor, emissiveIntensity: 0.12 }));
+      teamBadge.position.y = 1.48; avatar.add(teamBadge);
+      const neck = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 0.22), mat(skin)); neck.position.y = 1.61; avatar.add(neck);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.66, 0.62), mat(skin)); head.position.y = 1.98; head.castShadow = true; avatar.add(head);
+      const hairStyle = seed % 5;
+      const hair = new THREE.Mesh(
+        hairStyle === 0 ? new THREE.SphereGeometry(0.39, 8, 6)
+          : hairStyle === 1 ? new THREE.BoxGeometry(0.72, 0.24, 0.68)
+          : hairStyle === 2 ? new THREE.BoxGeometry(0.72, 0.34, 0.7)
+          : hairStyle === 3 ? new THREE.ConeGeometry(0.36, 0.48, 6)
+          : new THREE.BoxGeometry(0.7, 0.18, 0.72),
+        mat(hairColor));
+      hair.position.y = hairStyle === 3 ? 2.42 : 2.31; hair.castShadow = true; avatar.add(hair);
+      if (hairStyle === 2) {
+        const fringe = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.18, 0.16), mat(hairColor));
+        fringe.position.set(0, 2.17, 0.3); avatar.add(fringe);
       }
-      // A username-derived accessory makes players easier to recognise in a busy LIVE.
-      if (seed % 3 === 0) {
-        const cap = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.12, 0.72), mat(outfitColors[(seed + 3) % outfitColors.length]));
-        cap.position.y = 2.39; avatar.add(cap);
-      } else if (seed % 3 === 1) {
-        const backpack = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.46, 0.18), mat(outfitColors[(seed + 5) % outfitColors.length]));
-        backpack.position.set(0, 1.12, -0.31); avatar.add(backpack);
+      // Eyes and smile face forward (positive Z), so each runner reads clearly on stream.
+      for (const side of [-1, 1]) {
+        const eyeWhite = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.12, 0.035), mat(0xffffff));
+        eyeWhite.position.set(side * 0.16, 2.01, 0.326); avatar.add(eyeWhite);
+        const pupil = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.075, 0.02), dark);
+        pupil.position.set(side * 0.16, 2.0, 0.35); avatar.add(pupil);
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.62, 0.3), mat(pantsColor));
+        leg.position.set(side * 0.22, 0.43, 0); leg.castShadow = true; avatar.add(leg);
+        const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.18, 0.43), mat(shoeColor));
+        shoe.position.set(side * 0.22, 0.13, 0.075); shoe.castShadow = true; avatar.add(shoe);
+        const arm = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.62, 0.28), mat(skin));
+        arm.position.set(side * 0.55, 1.13, 0); arm.castShadow = true; avatar.add(arm);
+        const cuff = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.14, 0.29), mat(teamColor));
+        cuff.position.set(side * 0.55, 0.88, 0); avatar.add(cuff);
+      }
+      const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.045, 0.025), mat(0x743d45));
+      mouth.position.set(0, 1.83, 0.326); avatar.add(mouth);
+      // Username-seeded extras create recognisable silhouettes without external image assets.
+      if (seed % 4 === 0) {
+        const cap = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.13, 0.74), mat(outfitColors[(seed + 3) % outfitColors.length]));
+        cap.position.y = 2.48; avatar.add(cap);
+        const brim = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.06, 0.34), mat(outfitColors[(seed + 3) % outfitColors.length]));
+        brim.position.set(0, 2.4, 0.25); avatar.add(brim);
+      } else if (seed % 4 === 1) {
+        const backpack = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.48, 0.2), mat(outfitColors[(seed + 5) % outfitColors.length]));
+        backpack.position.set(0, 1.13, -0.31); avatar.add(backpack);
+        const packTop = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.1, 0.22), mat(teamColor));
+        packTop.position.set(0, 1.42, -0.31); avatar.add(packTop);
+      } else if (seed % 4 === 2) {
+        const glasses = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.12, 0.045), new THREE.MeshStandardMaterial({ color: 0x101827, metalness: 0.4, roughness: 0.25 }));
+        glasses.position.set(0, 2.01, 0.37); avatar.add(glasses);
+      } else {
+        const shoulder = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.16, 0.5), mat(teamColor));
+        shoulder.position.y = 1.49; avatar.add(shoulder);
       }
       const label = addLabel(name, teamColor); avatar.add(label); avatar.position.set(lane * 1.05, 0, 3 + (players.size % 4) * 1.2); scene.add(avatar);
       const p: LivePlayer = { username: name, lane, progress: 0, points: 0, color: teamColor, avatar, label, lastBoost: 0 };
