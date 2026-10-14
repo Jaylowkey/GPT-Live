@@ -130,15 +130,15 @@ export default function ObbyPage() {
 
     const players = new Map<string, LivePlayer>();
     const addLabel = (name: string, color: number) => {
-      const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 128;
+      const canvas = document.createElement('canvas'); canvas.width = 384; canvas.height = 96;
       const ctx = canvas.getContext('2d')!;
-      ctx.fillStyle = '#111827dd'; ctx.beginPath(); ctx.roundRect(10, 10, 492, 108, 26); ctx.fill();
-      ctx.strokeStyle = '#' + color.toString(16).padStart(6, '0'); ctx.lineWidth = 8; ctx.stroke();
-      ctx.font = 'bold 38px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ffffff';
-      ctx.fillText(name.slice(0, 22), 256, 64, 450);
+      ctx.fillStyle = '#111827ee'; ctx.beginPath(); ctx.roundRect(8, 8, 368, 80, 20); ctx.fill();
+      ctx.strokeStyle = '#' + color.toString(16).padStart(6, '0'); ctx.lineWidth = 5; ctx.stroke();
+      ctx.font = 'bold 30px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ffffff';
+      ctx.fillText(name.slice(0, 22), 192, 48, 340);
       const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }));
-      sprite.scale.set(4.2, 1.05, 1); sprite.position.y = 2.6;
+      sprite.scale.set(2.8, 0.7, 1); sprite.position.y = 2.85;
       return sprite;
     };
     const hashName = (value: string) => Array.from(value.toLowerCase()).reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
@@ -160,14 +160,14 @@ export default function ObbyPage() {
       const dark = mat(0x20283b);
       const pantsColor = [0x26334a, 0x393044, 0x263b3b, 0x31364d][(seed >>> 9) % 4];
       const shoeColor = [0xf8fafc, 0x171923, 0xffd166, 0x78dce8][(seed >>> 12) % 4];
-      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.82, 0.44), mat(outfit));
-      torso.position.y = 1.12; torso.castShadow = true; avatar.add(torso);
+      const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 0.38, 4, 8), mat(outfit));
+      torso.position.y = 1.12; torso.scale.set(1, 1, 0.72); torso.castShadow = true; avatar.add(torso);
       const shirtPanel = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.58, 0.035), mat(outfitColors[(seed + 2) % outfitColors.length]));
       shirtPanel.position.set(0, 1.13, 0.235); avatar.add(shirtPanel);
       const teamBadge = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.14, 0.49), new THREE.MeshStandardMaterial({ color: teamColor, emissive: teamColor, emissiveIntensity: 0.12 }));
       teamBadge.position.y = 1.48; avatar.add(teamBadge);
       const neck = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 0.22), mat(skin)); neck.position.y = 1.61; avatar.add(neck);
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.66, 0.62), mat(skin)); head.position.y = 1.98; head.castShadow = true; avatar.add(head);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.36, 16, 12), mat(skin)); head.scale.set(1, 1.04, 0.92); head.position.y = 1.98; head.castShadow = true; avatar.add(head);
       const hairStyle = seed % 5;
       const hair = new THREE.Mesh(
         hairStyle === 0 ? new THREE.SphereGeometry(0.39, 8, 6)
@@ -216,7 +216,7 @@ export default function ObbyPage() {
         const shoulder = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.16, 0.5), mat(teamColor));
         shoulder.position.y = 1.49; avatar.add(shoulder);
       }
-      const label = addLabel(name, teamColor); avatar.add(label); avatar.position.set(lane * 1.05, 0, 3 + (players.size % 4) * 1.2); avatar.rotation.y = Math.PI; scene.add(avatar);
+      const label = addLabel(name, teamColor); label.position.x = lane < 0 ? -0.22 : 0.22; avatar.add(label); avatar.position.set(lane * 1.05, 0, 3 + (players.size % 4) * 1.2); avatar.rotation.y = Math.PI; scene.add(avatar);
       const p: LivePlayer = { username: name, lane, progress: 0, points: 0, color: teamColor, avatar, label, lastBoost: 0, lastHit: 0 };
       players.set(key, p); setCount(players.size); return p;
     };
@@ -320,8 +320,8 @@ export default function ObbyPage() {
           cameraLook.set(lx * 0.25, 0.8, lz - 10);
         }
       } else {
-        cameraDesired.set(0, 13, 25);
-        cameraLook.set(0, 0, -12);
+        cameraDesired.set(0, 8.5, 18);
+        cameraLook.set(0, 1.3, -8);
       }
       const cameraSmooth = 1 - Math.exp(-2.4 * dt);
       camera.position.lerp(cameraDesired, cameraSmooth);
@@ -388,7 +388,7 @@ export default function ObbyPage() {
     const teamMat = new THREE.MeshStandardMaterial({color});
     const addBox=(w:number,h:number,d:number,material:THREE.Material,x:number,y:number,z:number)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;avatar.add(m);return m;};
     addBox(.76,.78,.42,outfitMat,0,1.2,0); addBox(.3,.5,.035,teamMat,0,1.18,.23);
-    addBox(.22,.18,.2,skinMat,0,1.68,0); addBox(.64,.64,.58,skinMat,0,2.05,0);
+    addBox(.22,.18,.2,skinMat,0,1.68,0); const demoHead = new THREE.Mesh(new THREE.SphereGeometry(.35,16,12),skinMat); demoHead.position.set(0,2.05,0); demoHead.scale.set(1,1.04,.92); demoHead.castShadow=true; avatar.add(demoHead);
     addBox(.7,.22,.65,new THREE.MeshStandardMaterial({color:[0x241c15,0x593d2b,0xb97935][seed%3]}),0,2.39,0);
     for(const side of [-1,1]){
       addBox(.12,.12,.035,new THREE.MeshStandardMaterial({color:0xffffff}),side*.15,2.08,.3);
@@ -403,7 +403,7 @@ export default function ObbyPage() {
     const labelCanvas=document.createElement('canvas');labelCanvas.width=512;labelCanvas.height=128;const ctx=labelCanvas.getContext('2d')!;
     ctx.fillStyle='#111827ee';ctx.beginPath();ctx.roundRect(8,8,496,112,24);ctx.fill();ctx.strokeStyle='#'+color.toString(16).padStart(6,'0');ctx.lineWidth=7;ctx.stroke();
     ctx.font='bold 40px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff';ctx.fillText(name,256,64,450);
-    const label=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(labelCanvas),transparent:true,depthTest:false}));label.scale.set(4.2,1.05,1);label.position.y=2.8;avatar.add(label);
+    const label=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(labelCanvas),transparent:true,depthTest:false}));label.scale.set(2.8,.7,1);label.position.set(lane < 0 ? -.22 : .22,2.85,0);avatar.add(label);
     avatar.position.set(lane*1.2,0,3);avatar.rotation.y=Math.PI;g.scene.add(avatar);
     g.players.set(name.toLowerCase(),{username:name,lane,progress:Math.random()*2,points:0,color,avatar,label,lastBoost:performance.now()});
     setCount(g.players.size); setRanking([...g.players.values()].sort((a,b)=>b.progress-a.progress).slice(0,10).map(p=>({name:p.username,points:Math.round(p.progress*10)+p.points,lane:p.lane})));
