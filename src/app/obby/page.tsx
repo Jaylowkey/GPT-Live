@@ -188,11 +188,11 @@ export default function ObbyPage() {
         const pupil = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.075, 0.02), dark);
         pupil.position.set(side * 0.16, 2.0, 0.35); avatar.add(pupil);
         const leg = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.62, 0.3), mat(pantsColor));
-        leg.position.set(side * 0.22, 0.43, 0); leg.castShadow = true; avatar.add(leg);
+        leg.position.set(side * 0.22, 0.43, 0); leg.castShadow = true; leg.userData.limb = side < 0 ? 'leftLeg' : 'rightLeg'; avatar.add(leg);
         const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.18, 0.43), mat(shoeColor));
         shoe.position.set(side * 0.22, 0.13, 0.075); shoe.castShadow = true; avatar.add(shoe);
         const arm = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.62, 0.28), mat(skin));
-        arm.position.set(side * 0.55, 1.13, 0); arm.castShadow = true; avatar.add(arm);
+        arm.position.set(side * 0.55, 1.13, 0); arm.castShadow = true; arm.userData.limb = side < 0 ? 'leftArm' : 'rightArm'; avatar.add(arm);
         const cuff = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.14, 0.29), mat(teamColor));
         cuff.position.set(side * 0.55, 0.88, 0); avatar.add(cuff);
       }
@@ -264,6 +264,8 @@ export default function ObbyPage() {
     };
 
     const clock = new THREE.Clock();
+    const cameraLook = new THREE.Vector3();
+    const cameraDesired = new THREE.Vector3();
     const animate = () => {
       if (!alive) return;
       const dt = Math.min(clock.getDelta(), 0.05);
@@ -271,26 +273,45 @@ export default function ObbyPage() {
       for (const p of players.values()) {
         if (scene.userData.roundOn) p.progress += dt * 0.45;
         p.avatar.position.z = 3 - p.progress * 4;
-        p.avatar.position.y = Math.max(0, Math.sin(clock.elapsedTime * 8 + p.lane) * 0.08);
-        p.avatar.children.forEach((child, idx) => { if (idx === 0) child.rotation.x = Math.sin(clock.elapsedTime * 9 + p.lane) * 0.08; });
+        const stride = scene.userData.roundOn ? 1 : 0.28;
+        p.avatar.position.y = Math.max(0, Math.abs(Math.sin(clock.elapsedTime * 10 + p.lane)) * (scene.userData.roundOn ? 0.13 : 0.035));
+        p.avatar.children.forEach((child) => {
+          const phase = clock.elapsedTime * (scene.userData.roundOn ? 11 : 2.2) + (p.lane < 0 ? 0 : Math.PI);
+          if (child.userData.limb === 'leftLeg') child.rotation.x = Math.sin(phase) * 0.62 * stride;
+          if (child.userData.limb === 'rightLeg') child.rotation.x = Math.sin(phase + Math.PI) * 0.62 * stride;
+          if (child.userData.limb === 'leftArm') child.rotation.x = Math.sin(phase + Math.PI) * 0.48 * stride;
+          if (child.userData.limb === 'rightArm') child.rotation.x = Math.sin(phase) * 0.48 * stride;
+        });
         if (p.avatar.position.z < -108) p.avatar.position.z = 3;
       }
       // Dynamic chase camera: follow the leading runner smoothly while looking ahead on the track.
       const leader = [...players.values()].sort((a, b) => b.progress - a.progress)[0];
-      const desiredCameraPosition = leader
-        ? new THREE.Vector3(leader.avatar.position.x * 0.35, 8.5, leader.avatar.position.z + 15)
-        : new THREE.Vector3(0, 13, 25);
-      const lookTarget = leader
-        ? new THREE.Vector3(leader.avatar.position.x * 0.45, 1.3, leader.avatar.position.z - 8)
-        : new THREE.Vector3(0, 0, -12);
-      // Frame-rate independent smoothing avoids sudden camera jumps.
-      const cameraSmooth = 1 - Math.exp(-3.2 * dt);
-      camera.position.lerp(desiredCameraPosition, cameraSmooth);
-      const currentLookTarget = camera.userData.lookTarget as THREE.Vector3 | undefined;
-      if (!currentLookTarget) camera.userData.lookTarget = lookTarget.clone();
-      const smoothLookTarget = camera.userData.lookTarget as THREE.Vector3;
-      smoothLookTarget.lerp(lookTarget, cameraSmooth);
-      camera.lookAt(smoothLookTarget);
+      // Cinematic camera cuts: rear chase, side tracking and elevated wide shot.
+      // Every angle continues to track the leading runner instead of staring at a fixed point.
+      const angle = Math.floor(clock.elapsedTime / 8) % 3;
+      if (leader) {
+        const lx = leader.avatar.position.x;
+        const lz = leader.avatar.position.z;
+        if (angle === 0) {
+          cameraDesired.set(lx * 0.42, 7.2, lz + 12.5);
+          cameraLook.set(lx * 0.3, 1.25, lz - 7.5);
+        } else if (angle === 1) {
+          cameraDesired.set(lx + 10.5, 4.8, lz + 2.5);
+          cameraLook.set(lx, 1.1, lz - 3.5);
+        } else {
+          cameraDesired.set(lx * 0.25, 15.5, lz + 8.5);
+          cameraLook.set(lx * 0.25, 0.8, lz - 10);
+        }
+      } else {
+        cameraDesired.set(0, 13, 25);
+        cameraLook.set(0, 0, -12);
+      }
+      const cameraSmooth = 1 - Math.exp(-2.4 * dt);
+      camera.position.lerp(cameraDesired, cameraSmooth);
+      const smoothLookTarget = camera.userData.lookTarget as THREE.Vector3 | undefined;
+      if (!smoothLookTarget) camera.userData.lookTarget = cameraLook.clone();
+      (camera.userData.lookTarget as THREE.Vector3).lerp(cameraLook, cameraSmooth);
+      camera.lookAt(camera.userData.lookTarget as THREE.Vector3);
       renderer.render(scene, camera);
       gameRef.current && (gameRef.current.frame = requestAnimationFrame(animate));
     };
@@ -340,13 +361,33 @@ export default function ObbyPage() {
     if (g.players.has(name.toLowerCase())) return;
     // Simulate a TikFinity chat event through the same game logic by posting a local event.
     const lane = (g.players.size % 7) - 3; const color = team === 'blue' ? BLUE : RED;
+    // Rich demo avatar matching the live-player proportions, with layered outfit and articulated limbs.
     const avatar = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.BoxGeometry(.85,.95,.48),new THREE.MeshStandardMaterial({color})); body.position.y=1.05; avatar.add(body);
-    const head = new THREE.Mesh(new THREE.BoxGeometry(.66,.66,.66),new THREE.MeshStandardMaterial({color:0xffd0a6})); head.position.y=1.88; avatar.add(head);
-    const labelCanvas = document.createElement('canvas'); labelCanvas.width=512; labelCanvas.height=128; const ctx=labelCanvas.getContext('2d')!;
-    ctx.fillStyle='#111827dd'; ctx.fillRect(8,8,496,112); ctx.font='bold 40px Arial'; ctx.textAlign='center'; ctx.fillStyle='#fff'; ctx.fillText(name,256,70);
-    const label = new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(labelCanvas),transparent:true,depthTest:false})); label.scale.set(4.2,1.05,1); label.position.y=2.6; avatar.add(label);
-    avatar.position.set(lane*1.2,0,3); g.scene.add(avatar);
+    const seed = Array.from(name).reduce((h,ch)=>(h*31+ch.charCodeAt(0))>>>0,11);
+    const skin = [0xffd0a6,0xc68655,0x8d5524,0xf1c27d][seed%4];
+    const outfit = [0x7c5cff,0xff8a3d,0x22c7a9,0xf04f91][seed%4];
+    const skinMat = new THREE.MeshStandardMaterial({color:skin});
+    const outfitMat = new THREE.MeshStandardMaterial({color:outfit});
+    const teamMat = new THREE.MeshStandardMaterial({color});
+    const addBox=(w:number,h:number,d:number,material:THREE.Material,x:number,y:number,z:number)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;avatar.add(m);return m;};
+    addBox(.76,.78,.42,outfitMat,0,1.2,0); addBox(.3,.5,.035,teamMat,0,1.18,.23);
+    addBox(.22,.18,.2,skinMat,0,1.68,0); addBox(.64,.64,.58,skinMat,0,2.05,0);
+    addBox(.7,.22,.65,new THREE.MeshStandardMaterial({color:[0x241c15,0x593d2b,0xb97935][seed%3]}),0,2.39,0);
+    for(const side of [-1,1]){
+      addBox(.12,.12,.035,new THREE.MeshStandardMaterial({color:0xffffff}),side*.15,2.08,.3);
+      addBox(.05,.07,.02,new THREE.MeshStandardMaterial({color:0x20283b}),side*.15,2.08,.323);
+      const leg=addBox(.27,.58,.28,new THREE.MeshStandardMaterial({color:0x26334a}),side*.2,.48,0);leg.userData.limb=side<0?'leftLeg':'rightLeg';
+      addBox(.31,.17,.4,new THREE.MeshStandardMaterial({color:0xf8fafc}),side*.2,.15,.07);
+      const arm=addBox(.22,.58,.25,skinMat,side*.51,1.18,0);arm.userData.limb=side<0?'leftArm':'rightArm';
+      addBox(.24,.13,.27,teamMat,side*.51,.91,0);
+    }
+    addBox(.18,.045,.025,new THREE.MeshStandardMaterial({color:0x743d45}),0,1.88,.3);
+    if(seed%2===0)addBox(.38,.42,.18,new THREE.MeshStandardMaterial({color:0xf2c94c}),0,1.2,-.28);
+    const labelCanvas=document.createElement('canvas');labelCanvas.width=512;labelCanvas.height=128;const ctx=labelCanvas.getContext('2d')!;
+    ctx.fillStyle='#111827ee';ctx.beginPath();ctx.roundRect(8,8,496,112,24);ctx.fill();ctx.strokeStyle='#'+color.toString(16).padStart(6,'0');ctx.lineWidth=7;ctx.stroke();
+    ctx.font='bold 40px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff';ctx.fillText(name,256,64,450);
+    const label=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(labelCanvas),transparent:true,depthTest:false}));label.scale.set(4.2,1.05,1);label.position.y=2.8;avatar.add(label);
+    avatar.position.set(lane*1.2,0,3);g.scene.add(avatar);
     g.players.set(name.toLowerCase(),{username:name,lane,progress:Math.random()*2,points:0,color,avatar,label,lastBoost:performance.now()});
     setCount(g.players.size); setRanking([...g.players.values()].sort((a,b)=>b.progress-a.progress).slice(0,10).map(p=>({name:p.username,points:Math.round(p.progress*10)+p.points,lane:p.lane})));
     announce(name+' entrou na pista! Vamos correr!');
